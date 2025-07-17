@@ -55,6 +55,12 @@ Use docker to deploy ERPNext in production or for development of [Frappe](https:
 
 ### Manual Install
 
+```
+bench get-app https://github.com/n3wang/erpnext --branch version-15
+bench --site dev_site install-app erpnext
+```
+
+
 The Easy Way: our install script for bench will install all dependencies (e.g. MariaDB). See https://github.com/frappe/bench for more details.
 
 New passwords will be created for the ERPNext "Administrator" user, the MariaDB root user, and the frappe user (the script displays the passwords and saves them to ~/frappe_passwords.txt).
