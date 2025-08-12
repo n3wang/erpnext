@@ -438,13 +438,32 @@ erpnext.PointOfSale.Controller = class {
 				},
 
 				submit_invoice: () => {
-					this.frm.savesubmit().then((r) => {
-						this.toggle_components(false);
-						this.order_summary.toggle_component(true);
-						this.order_summary.load_summary_of(this.frm.doc, true);
-						frappe.show_alert({
-							indicator: "green",
-							message: __("POS invoice {0} created succesfully", [r.doc.name]),
+					// Direct submission without confirmation dialog for POS
+					this.frm.validate_form_action("Submit");
+					frappe.validated = true;
+					this.frm.script_manager.trigger("before_submit").then(() => {
+						if (!frappe.validated) {
+							return;
+						}
+						this.frm.save("Submit", (r) => {
+							if (r.exc) {
+								frappe.msgprint({
+									title: __("Error"),
+									indicator: "red",
+									message: r.exc
+								});
+							} else {
+								frappe.utils.play_sound("submit");
+								this.frm.script_manager.trigger("on_submit").then(() => {
+									this.toggle_components(false);
+									this.order_summary.toggle_component(true);
+									this.order_summary.load_summary_of(this.frm.doc, true);
+									frappe.show_alert({
+										indicator: "green",
+										message: __("POS invoice {0} created succesfully", [r.doc.name]),
+									});
+								});
+							}
 						});
 					});
 				},
