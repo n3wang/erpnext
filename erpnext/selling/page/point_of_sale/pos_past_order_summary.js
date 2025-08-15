@@ -186,18 +186,17 @@ erpnext.PointOfSale.PastOrderSummary = class {
 
 		this.$summary_container.on("click", ".delete-btn", () => {
 			this.events.delete_order(this.doc.name);
-			this.show_summary_placeholder();
+			this.toggle_summary_placeholder(true);
 		});
 
 		this.$summary_container.on("click", ".delete-btn", () => {
+			console.log("POS: Delete Order button clicked");
 			this.events.delete_order(this.doc.name);
-			this.show_summary_placeholder();
-			// this.toggle_component(false);
-			// this.$component.find('.no-summary-placeholder').removeClass('d-none');
-			// this.$summary_wrapper.addClass('d-none');
+			this.toggle_summary_placeholder(true);
 		});
 
 		this.$summary_container.on("click", ".new-btn", () => {
+			console.log("POS: New Order button clicked");
 			this.events.new_order();
 			this.toggle_component(false);
 			this.$component.find(".no-summary-placeholder").css("display", "flex");
@@ -205,11 +204,13 @@ erpnext.PointOfSale.PastOrderSummary = class {
 		});
 
 		this.$summary_container.on("click", ".email-btn", () => {
+			console.log("POS: Email button clicked");
 			this.email_dialog.fields_dict.email_id.set_value(this.customer_email);
 			this.email_dialog.show();
 		});
 
 		this.$summary_container.on("click", ".print-btn", () => {
+			console.log("POS: Print button clicked");
 			this.print_receipt();
 		});
 	}
@@ -232,7 +233,10 @@ erpnext.PointOfSale.PastOrderSummary = class {
 		this.$summary_container.find(".print-btn").attr("title", `${ctrl_label}+F10`);
 		frappe.ui.keys.add_shortcut({
 			shortcut: "ctrl+f10",
-			action: () => this.$summary_container.find(".print-btn").click(),
+			action: () => {
+				console.log("POS: Ctrl+F10 Print Receipt shortcut activated");
+				this.$summary_container.find(".print-btn").click();
+			},
 			condition: () =>
 				this.$component.is(":visible") && this.$summary_container.find(".print-btn").is(":visible"),
 			description: __("Print Receipt"),
@@ -242,7 +246,10 @@ erpnext.PointOfSale.PastOrderSummary = class {
 		// Keep legacy Ctrl+P for compatibility
 		frappe.ui.keys.add_shortcut({
 			shortcut: "ctrl+p",
-			action: () => this.$summary_container.find(".print-btn").click(),
+			action: () => {
+				console.log("POS: Ctrl+P Print Receipt shortcut activated (legacy)");
+				this.$summary_container.find(".print-btn").click();
+			},
 			condition: () =>
 				this.$component.is(":visible") && this.$summary_container.find(".print-btn").is(":visible"),
 			description: __("Print Receipt"),
@@ -253,7 +260,10 @@ erpnext.PointOfSale.PastOrderSummary = class {
 		this.$summary_container.find(".email-btn").attr("title", `${ctrl_label}+F11`);
 		frappe.ui.keys.add_shortcut({
 			shortcut: "ctrl+f11",
-			action: () => this.$summary_container.find(".email-btn").click(),
+			action: () => {
+				console.log("POS: Ctrl+F11 Email Receipt shortcut activated");
+				this.$summary_container.find(".email-btn").click();
+			},
 			condition: () =>
 				this.$component.is(":visible") && this.$summary_container.find(".email-btn").is(":visible"),
 			description: __("Email Receipt"),
@@ -264,7 +274,10 @@ erpnext.PointOfSale.PastOrderSummary = class {
 		this.$summary_container.find(".new-btn").attr("title", `${ctrl_label}+F12`);
 		frappe.ui.keys.add_shortcut({
 			shortcut: "ctrl+f12",
-			action: () => this.$summary_container.find(".new-btn").click(),
+			action: () => {
+				console.log("POS: Ctrl+F12 New Order shortcut activated (from summary)");
+				this.$summary_container.find(".new-btn").click();
+			},
 			condition: () =>
 				this.$component.is(":visible") && this.$summary_container.find(".new-btn").is(":visible"),
 			description: __("New Order"),
@@ -275,6 +288,7 @@ erpnext.PointOfSale.PastOrderSummary = class {
 		frappe.ui.keys.on("ctrl+enter", () => {
 			const summary_is_visible = this.$component.is(":visible");
 			if (summary_is_visible && this.$summary_container.find(".new-btn").is(":visible")) {
+				console.log("POS: Ctrl+Enter New Order shortcut activated (legacy)");
 				this.$summary_container.find(".new-btn").click();
 			}
 		});
