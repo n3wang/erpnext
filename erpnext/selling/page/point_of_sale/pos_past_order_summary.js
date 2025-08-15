@@ -227,7 +227,19 @@ erpnext.PointOfSale.PastOrderSummary = class {
 
 	attach_shortcuts() {
 		const ctrl_label = frappe.utils.is_mac() ? "⌘" : "Ctrl";
-		this.$summary_container.find(".print-btn").attr("title", `${ctrl_label}+P`);
+		
+		// Ctrl+F10 for Print Receipt
+		this.$summary_container.find(".print-btn").attr("title", `${ctrl_label}+F10`);
+		frappe.ui.keys.add_shortcut({
+			shortcut: "ctrl+f10",
+			action: () => this.$summary_container.find(".print-btn").click(),
+			condition: () =>
+				this.$component.is(":visible") && this.$summary_container.find(".print-btn").is(":visible"),
+			description: __("Print Receipt"),
+			page: cur_page.page.page,
+		});
+		
+		// Keep legacy Ctrl+P for compatibility
 		frappe.ui.keys.add_shortcut({
 			shortcut: "ctrl+p",
 			action: () => this.$summary_container.find(".print-btn").click(),
@@ -236,13 +248,37 @@ erpnext.PointOfSale.PastOrderSummary = class {
 			description: __("Print Receipt"),
 			page: cur_page.page.page,
 		});
-		this.$summary_container.find(".new-btn").attr("title", `${ctrl_label}+Enter`);
+		
+		// Ctrl+F11 for Email Receipt
+		this.$summary_container.find(".email-btn").attr("title", `${ctrl_label}+F11`);
+		frappe.ui.keys.add_shortcut({
+			shortcut: "ctrl+f11",
+			action: () => this.$summary_container.find(".email-btn").click(),
+			condition: () =>
+				this.$component.is(":visible") && this.$summary_container.find(".email-btn").is(":visible"),
+			description: __("Email Receipt"),
+			page: cur_page.page.page,
+		});
+		
+		// Ctrl+F12 for New Order
+		this.$summary_container.find(".new-btn").attr("title", `${ctrl_label}+F12`);
+		frappe.ui.keys.add_shortcut({
+			shortcut: "ctrl+f12",
+			action: () => this.$summary_container.find(".new-btn").click(),
+			condition: () =>
+				this.$component.is(":visible") && this.$summary_container.find(".new-btn").is(":visible"),
+			description: __("New Order"),
+			page: cur_page.page.page,
+		});
+		
+		// Keep legacy Ctrl+Enter for compatibility
 		frappe.ui.keys.on("ctrl+enter", () => {
 			const summary_is_visible = this.$component.is(":visible");
 			if (summary_is_visible && this.$summary_container.find(".new-btn").is(":visible")) {
 				this.$summary_container.find(".new-btn").click();
 			}
 		});
+		
 		this.$summary_container.find(".edit-btn").attr("title", `${ctrl_label}+E`);
 		frappe.ui.keys.add_shortcut({
 			shortcut: "ctrl+e",
@@ -302,7 +338,9 @@ erpnext.PointOfSale.PastOrderSummary = class {
 		map.forEach((m) => {
 			if (m.condition) {
 				m.visible_btns.forEach((b) => {
-					const class_name = b.split(" ")[0].toLowerCase();
+					// Extract the base button name for class (before any bracket content)
+					let base_name = b.split("[")[0].trim();
+					const class_name = base_name.split(" ")[0].toLowerCase();
 					const btn = __(b);
 					this.$summary_btns.append(
 						`<div class="summary-btn btn btn-default ${class_name}-btn">${btn}</div>`
@@ -325,17 +363,17 @@ erpnext.PointOfSale.PastOrderSummary = class {
 
 	get_condition_btn_map(after_submission) {
 		if (after_submission)
-			return [{ condition: true, visible_btns: ["Print Receipt", "Email Receipt", "New Order"] }];
+			return [{ condition: true, visible_btns: ["Print Receipt [Ctrl F10]", "Email Receipt [Ctrl F11]", "New Order [Ctrl F12]"] }];
 
 		return [
 			{ condition: this.doc.docstatus === 0, visible_btns: ["Edit Order", "Delete Order"] },
 			{
 				condition: !this.doc.is_return && this.doc.docstatus === 1,
-				visible_btns: ["Print Receipt", "Email Receipt", "Return"],
+				visible_btns: ["Print Receipt [Ctrl F10]", "Email Receipt [Ctrl F11]", "Return"],
 			},
 			{
 				condition: this.doc.is_return && this.doc.docstatus === 1,
-				visible_btns: ["Print Receipt", "Email Receipt"],
+				visible_btns: ["Print Receipt [Ctrl F10]", "Email Receipt [Ctrl F11]"],
 			},
 		];
 	}

@@ -29,7 +29,7 @@ erpnext.PointOfSale.Payment = class {
 				<div class="totals-section">
 					<div class="totals"></div>
 				</div>
-				<div class="submit-order-btn">${__("Complete Order")}</div>
+				<div class="submit-order-btn">${__("Complete Order [Ctrl F12]")}</div>
 			</section>`
 		);
 		this.$component = this.wrapper.find(".payment-container");
@@ -297,7 +297,25 @@ erpnext.PointOfSale.Payment = class {
 
 	attach_shortcuts() {
 		const ctrl_label = frappe.utils.is_mac() ? "⌘" : "Ctrl";
-		this.$component.find(".submit-order-btn").attr("title", `${ctrl_label}+Enter`);
+		this.$component.find(".submit-order-btn").attr("title", `${ctrl_label}+F12`);
+		
+		// Add Ctrl+F12 shortcut for Complete Order
+		frappe.ui.keys.add_shortcut({
+			shortcut: "ctrl+f12",
+			action: () => {
+				const payment_is_visible = this.$component.is(":visible");
+				const active_mode = this.$payment_modes.find(".border-primary");
+				if (payment_is_visible && active_mode.length) {
+					this.$component.find(".submit-order-btn").click();
+				}
+			},
+			condition: () => this.$component.is(":visible") && this.$payment_modes.find(".border-primary").length,
+			description: __("Complete Order"),
+			ignore_inputs: true,
+			page: cur_page.page.page,
+		});
+		
+		// Keep legacy Ctrl+Enter for compatibility
 		frappe.ui.keys.on("ctrl+enter", () => {
 			const payment_is_visible = this.$component.is(":visible");
 			const active_mode = this.$payment_modes.find(".border-primary");
