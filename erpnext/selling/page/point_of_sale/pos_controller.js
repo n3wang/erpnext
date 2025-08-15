@@ -343,10 +343,13 @@ erpnext.PointOfSale.Controller = class {
 	}
 	
 	print_last_receipt() {
+		console.log("POS: Print Receipt menu action triggered");
 		// Check if we're in order summary view
 		if (this.order_summary && this.order_summary.doc) {
+			console.log("POS: Printing receipt from order summary");
 			this.order_summary.print_receipt();
 		} else if (this.frm && this.frm.doc && this.frm.doc.docstatus === 1) {
+			console.log("POS: Printing current submitted invoice");
 			// Print current submitted invoice
 			frappe.utils.print(
 				this.frm.doc.doctype,
@@ -356,6 +359,7 @@ erpnext.PointOfSale.Controller = class {
 				this.frm.doc.language || frappe.boot.lang
 			);
 		} else {
+			console.log("POS: No completed order available to print");
 			frappe.show_alert({
 				message: __("No completed order to print"),
 				indicator: "orange"
@@ -364,10 +368,13 @@ erpnext.PointOfSale.Controller = class {
 	}
 	
 	email_last_receipt() {
+		console.log("POS: Email Receipt menu action triggered");
 		// Check if we're in order summary view
 		if (this.order_summary && this.order_summary.doc) {
+			console.log("POS: Opening email dialog from order summary");
 			this.order_summary.email_dialog.show();
 		} else {
+			console.log("POS: No order selected for emailing");
 			frappe.show_alert({
 				message: __("Please select an order from recent orders to email"),
 				indicator: "orange"
@@ -376,16 +383,20 @@ erpnext.PointOfSale.Controller = class {
 	}
 	
 	new_order_shortcut() {
+		console.log("POS: New Order menu action triggered");
 		// Check if we're in order summary view
 		if (this.order_summary && this.order_summary.$component.is(":visible")) {
+			console.log("POS: Creating new order from summary view");
 			this.order_summary.events.new_order();
 		} else if (this.payment && this.payment.$component.is(":visible")) {
+			console.log("POS: In payment view, attempting to complete current order first");
 			// If in payment view, try to complete the order first
 			const submit_btn = this.payment.$component.find(".submit-order-btn");
 			if (submit_btn.length) {
 				submit_btn.click();
 			}
 		} else {
+			console.log("POS: Creating new order from main view");
 			// Create new order
 			frappe.run_serially([
 				() => frappe.dom.freeze(),

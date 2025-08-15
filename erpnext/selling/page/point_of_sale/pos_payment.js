@@ -204,15 +204,18 @@ erpnext.PointOfSale.Payment = class {
 		});
 
 		this.$component.on("click", ".submit-order-btn", () => {
+			console.log("POS: Complete Order button clicked");
 			const doc = this.events.get_frm().doc;
 			const paid_amount = doc.paid_amount;
 			const items = doc.items;
 
 			if (!this.validate_reqd_invoice_fields()) {
+				console.log("POS: Order submission failed - required fields missing");
 				return;
 			}
 
 			if (!items.length || (paid_amount == 0 && doc.additional_discount_percentage != 100)) {
+				console.log("POS: Order submission failed - no items or payment");
 				const message = items.length
 					? __("You cannot submit the order without payment.")
 					: __("You cannot submit empty order.");
@@ -221,6 +224,7 @@ erpnext.PointOfSale.Payment = class {
 				return;
 			}
 
+			console.log("POS: Submitting order");
 			this.events.submit_invoice();
 		});
 
@@ -303,10 +307,14 @@ erpnext.PointOfSale.Payment = class {
 		frappe.ui.keys.add_shortcut({
 			shortcut: "ctrl+f12",
 			action: () => {
+				console.log("POS: Ctrl+F12 Complete Order shortcut activated");
 				const payment_is_visible = this.$component.is(":visible");
 				const active_mode = this.$payment_modes.find(".border-primary");
 				if (payment_is_visible && active_mode.length) {
+					console.log("POS: Payment visible and payment mode selected, completing order");
 					this.$component.find(".submit-order-btn").click();
+				} else {
+					console.log("POS: Cannot complete order - payment not visible or no payment mode selected");
 				}
 			},
 			condition: () => this.$component.is(":visible") && this.$payment_modes.find(".border-primary").length,
@@ -320,6 +328,7 @@ erpnext.PointOfSale.Payment = class {
 			const payment_is_visible = this.$component.is(":visible");
 			const active_mode = this.$payment_modes.find(".border-primary");
 			if (payment_is_visible && active_mode.length) {
+				console.log("POS: Ctrl+Enter Complete Order shortcut activated (legacy)");
 				this.$component.find(".submit-order-btn").click();
 			}
 		});
