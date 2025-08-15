@@ -147,6 +147,7 @@ erpnext.PointOfSale.Controller = class {
 				Object.assign(this.settings, profile);
 				this.settings.customer_groups = profile.customer_groups.map((group) => group.name);
 				this.make_app();
+				this.load_default_customer();
 			},
 		});
 
@@ -189,6 +190,34 @@ erpnext.PointOfSale.Controller = class {
 		this.make_new_invoice();
 	}
 
+	load_default_customer() {
+		console.log("Loading default customer for POS profile:", this.pos_profile);
+		frappe.call({
+			method: "erpnext.selling.page.point_of_sale.point_of_sale.get_default_customer_for_pos",
+			args: { pos_profile: this.pos_profile },
+			callback: (res) => {
+				console.log("Default customer response:", res);
+				if (res.message) {
+					const customer = res.message;
+					console.log("Setting default customer:", customer.name, customer.customer_name);
+					
+					// Set customer in the form
+					this.frm.set_value("customer", customer.name);
+					
+					// Trigger customer change to update all related fields
+					this.frm.script_manager.trigger("customer", this.frm.doc.doctype, this.frm.doc.name).then(() => {
+						console.log("Default customer loaded successfully:", customer.name);
+					});
+				} else {
+					console.log("No default customer found for POS profile:", this.pos_profile);
+				}
+			},
+			error: (err) => {
+				console.error("Error loading default customer:", err);
+			}
+		});
+	}
+
 	prepare_dom() {
 		this.wrapper.append(`<div class="point-of-sale-app"></div>`);
 
@@ -217,6 +246,12 @@ erpnext.PointOfSale.Controller = class {
 		);
 
 		this.page.add_menu_item(__("Save as Draft"), this.save_draft_invoice.bind(this), false, "Ctrl+S");
+
+		this.page.add_menu_item(__("Print Receipt [Ctrl F10]"), this.print_last_receipt.bind(this), false, "Ctrl+F10");
+		
+		this.page.add_menu_item(__("Email Receipt [Ctrl F11]"), this.email_last_receipt.bind(this), false, "Ctrl+F11");
+		
+		this.page.add_menu_item(__("New Order [Ctrl F12]"), this.new_order_shortcut.bind(this), false, "Ctrl+F12");
 
 		this.page.add_menu_item(__("Close the POS"), this.close_pos.bind(this), false, "Shift+Ctrl+C");
 	}
@@ -305,6 +340,60 @@ erpnext.PointOfSale.Controller = class {
 		voucher.posting_date = frappe.datetime.now_date();
 		voucher.posting_time = frappe.datetime.now_time();
 		frappe.set_route("Form", "POS Closing Entry", voucher.name);
+	}
+	
+	print_last_receipt() {
+		// Check if we're in order summary view
+		if (this.order_summary && this.order_summary.doc) {
+			this.order_summary.print_receipt();
+		} else if (this.frm && this.frm.doc && this.frm.doc.docstatus === 1) {
+			// Print current submitted invoice
+			frappe.utils.print(
+				this.frm.doc.doctype,
+				this.frm.doc.name,
+				this.frm.pos_print_format,
+				this.frm.doc.letter_head,
+				this.frm.doc.language || frappe.boot.lang
+			);
+		} else {
+			frappe.show_alert({
+				message: __("No completed order to print"),
+				indicator: "orange"
+			});
+		}
+	}
+	
+	email_last_receipt() {
+		// Check if we're in order summary view
+		if (this.order_summary && this.order_summary.doc) {
+			this.order_summary.email_dialog.show();
+		} else {
+			frappe.show_alert({
+				message: __("Please select an order from recent orders to email"),
+				indicator: "orange"
+			});
+		}
+	}
+	
+	new_order_shortcut() {
+		// Check if we're in order summary view
+		if (this.order_summary && this.order_summary.$component.is(":visible")) {
+			this.order_summary.events.new_order();
+		} else if (this.payment && this.payment.$component.is(":visible")) {
+			// If in payment view, try to complete the order first
+			const submit_btn = this.payment.$component.find(".submit-order-btn");
+			if (submit_btn.length) {
+				submit_btn.click();
+			}
+		} else {
+			// Create new order
+			frappe.run_serially([
+				() => frappe.dom.freeze(),
+				() => this.make_new_invoice(),
+				() => this.item_selector.toggle_component(true),
+				() => frappe.dom.unfreeze(),
+			]);
+		}
 	}
 
 	init_item_selector() {

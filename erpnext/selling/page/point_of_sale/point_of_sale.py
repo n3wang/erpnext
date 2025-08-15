@@ -420,3 +420,132 @@ def get_pos_profile_data(pos_profile):
 
 	pos_profile.customer_groups = _customer_groups_with_children
 	return pos_profile
+
+
+@frappe.whitelist()
+@frappe.validate_and_sanitize_search_inputs
+def customer_query(doctype, txt, searchfield, start, page_len, filters, query_params=None):
+	"""
+	Custom customer query that prioritizes customers with default_pos_profile 
+	matching the current POS profile
+	"""
+	import json
+	
+	frappe.logger().info(f"POS Customer Query - Raw params: doctype={doctype}, txt={txt}, filters={filters}, query_params={query_params}")
+	
+	# Parse query_params if it's a string
+	if isinstance(query_params, str):
+		try:
+			query_params = json.loads(query_params)
+		except:
+			frappe.logger().error(f"Failed to parse query_params: {query_params}")
+			query_params = {}
+	
+	if not query_params:
+		query_params = {}
+	
+	pos_profile = query_params.get("pos_profile")
+	frappe.logger().info(f"POS Customer Query - Extracted pos_profile: {pos_profile}")
+	
+	# Base conditions
+	conditions = []
+	values = {}
+	
+	if txt:
+		# Simplified search for better debugging
+		txt_condition = """(customer_name like %(txt)s 
+			or name like %(txt)s 
+			or mobile_no like %(txt)s
+			or email_id like %(txt)s)"""
+		conditions.append(txt_condition)
+		values["txt"] = f"%{txt}%"
+		frappe.logger().info(f"POS Customer Query - Added text search: {txt}")
+	
+	# Apply filters
+	if filters:
+		for key, value in filters.items():
+			if isinstance(value, list) and len(value) >= 2 and value[0] == "in":
+				placeholders = ", ".join([f"%(filter_{key}_{i})s" for i in range(len(value[1]))])
+				conditions.append(f"{key} in ({placeholders})")
+				for i, val in enumerate(value[1]):
+					values[f"filter_{key}_{i}"] = val
+			else:
+				conditions.append(f"{key} = %(filter_{key})s")
+				values[f"filter_{key}"] = value
+		frappe.logger().info(f"POS Customer Query - Applied filters: {filters}")
+	
+	where_clause = " AND ".join(conditions) if conditions else "1=1"
+	
+	# Build the query with prioritization for default POS profile
+	if pos_profile:
+		query = f"""
+			SELECT name, customer_name, customer_group, territory, customer_type, default_pos_profile
+			FROM `tabCustomer`
+			WHERE disabled = 0 AND ({where_clause})
+			ORDER BY 
+				CASE WHEN IFNULL(default_pos_profile, '') = %(pos_profile)s THEN 0 ELSE 1 END,
+				customer_name ASC
+			LIMIT %(page_len)s OFFSET %(start)s
+		"""
+		values["pos_profile"] = pos_profile
+	else:
+		query = f"""
+			SELECT name, customer_name, customer_group, territory, customer_type, default_pos_profile
+			FROM `tabCustomer`
+			WHERE disabled = 0 AND ({where_clause})
+			ORDER BY customer_name ASC
+			LIMIT %(page_len)s OFFSET %(start)s
+		"""
+	
+	values["page_len"] = cint(page_len)
+	values["start"] = cint(start)
+	
+	frappe.logger().info(f"POS Customer Query - Final query: {query}")
+	frappe.logger().info(f"POS Customer Query - Values: {values}")
+	
+	try:
+		result = frappe.db.sql(query, values)
+		frappe.logger().info(f"POS Customer Query - Result count: {len(result)}")
+		frappe.logger().info(f"POS Customer Query - First few results: {result[:3] if result else 'No results'}")
+		return result
+	except Exception as e:
+		frappe.logger().error(f"POS Customer Query - Error: {str(e)}")
+		frappe.log_error(f"POS Customer Query Error: {str(e)}")
+		raise
+
+
+@frappe.whitelist()
+def get_default_customer_for_pos(pos_profile):
+	"""
+	Get the first customer with the specified POS profile as default
+	"""
+	frappe.logger().info(f"Getting default customer for POS profile: {pos_profile}")
+	
+	if not pos_profile:
+		frappe.logger().info("No POS profile provided, returning None")
+		return None
+	
+	try:
+		# Get first customer with matching default_pos_profile
+		customers = frappe.db.sql("""
+			SELECT name, customer_name, customer_group, territory, customer_type
+			FROM `tabCustomer`
+			WHERE disabled = 0 AND IFNULL(default_pos_profile, '') = %(pos_profile)s
+			ORDER BY customer_name ASC
+			LIMIT 1
+		""", {"pos_profile": pos_profile}, as_dict=True)
+		
+		frappe.logger().info(f"Found {len(customers)} default customers for POS profile {pos_profile}")
+		
+		if customers:
+			customer = customers[0]
+			frappe.logger().info(f"Returning default customer: {customer.name} - {customer.customer_name}")
+			return customer
+		else:
+			frappe.logger().info(f"No default customer found for POS profile: {pos_profile}")
+			return None
+			
+	except Exception as e:
+		frappe.logger().error(f"Error getting default customer: {str(e)}")
+		frappe.log_error(f"Get Default Customer Error: {str(e)}")
+		return None

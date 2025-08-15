@@ -29,6 +29,7 @@
   "default_bank_account",
   "column_break_14",
   "default_price_list",
+  "default_pos_profile",
   "internal_customer_section",
   "is_internal_customer",
   "represents_company",
@@ -248,6 +249,13 @@
    "ignore_user_permissions": 1,
    "label": "Default Price List",
    "options": "Price List"
+  },
+  {
+   "fieldname": "default_pos_profile",
+   "fieldtype": "Link",
+   "ignore_user_permissions": 1,
+   "label": "Default in POS",
+   "options": "POS Profile"
   },
   {
    "fieldname": "column_break_14",

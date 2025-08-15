@@ -311,8 +311,14 @@ erpnext.PointOfSale.ItemCart = class {
 				options: "Customer",
 				placeholder: __("Search by customer name, phone, email."),
 				get_query: function () {
+					const frm = me.events.get_frm();
+					const pos_profile = frm.doc.pos_profile;
 					return {
 						filters: filters,
+						query: "erpnext.selling.page.point_of_sale.point_of_sale.customer_query",
+						query_params: {
+							pos_profile: pos_profile
+						}
 					};
 				},
 				onchange: function () {
